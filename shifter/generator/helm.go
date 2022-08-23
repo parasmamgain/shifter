@@ -56,12 +56,12 @@ func (generator Generator) Helm(name string, objects []lib.K8sobject, parameters
 
 	helmChart = append(helmChart, createChart(name))
 
-	// Templates
-	for k, v := range objects {
+	for _, v := range objects {
 		//no := strconv.Itoa(k)
 		kind := fmt.Sprintf("%v", v.Kind)
 
-		log.Printf("Writing helm template file %x %s", k, kind)
+		// TODO - Do we need to replace the Log Commented out below?
+		//log.Printf("Writing helm template file %x %s", k, kind)
 
 		buff := new(bytes.Buffer)
 		writer := bufio.NewWriter(buff)
@@ -113,7 +113,6 @@ func createValues(parameters []lib.OSTemplateParams) lib.Converted {
 }
 
 func createChart(name string) lib.Converted {
-	// Chart
 	var chart Chart
 	var version string = "v1.0"
 

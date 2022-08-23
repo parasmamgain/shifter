@@ -15,26 +15,23 @@ package input
 
 import (
 	"bytes"
-	gyaml "github.com/ghodss/yaml"
-	yaml "gopkg.in/yaml.v3"
 	"io"
-	"io/ioutil"
 	"log"
 	"shifter/lib"
 	"shifter/processor"
-	"strings"
+
+	gyaml "github.com/ghodss/yaml"
+	yaml "gopkg.in/yaml.v3"
 )
 
 type Spec struct {
 	Kind string `yaml:"kind"`
 }
 
-func Yaml(input bytes.Buffer, flags map[string]string) []lib.K8sobject {
+func Yaml(input bytes.Buffer, flags map[string]string) ([]lib.K8sobject, error) {
 
-	//nestedQuotedStringHack(fileName)
-
-	f := bytes.NewReader(input.Bytes())
-	d := yaml.NewDecoder(f)
+	file := bytes.NewReader(input.Bytes())
+	d := yaml.NewDecoder(file)
 	objects := make([]lib.K8sobject, 0)
 
 	for {
@@ -43,7 +40,8 @@ func Yaml(input bytes.Buffer, flags map[string]string) []lib.K8sobject {
 		err := d.Decode(&doc)
 		if err != nil {
 			if err != io.EOF {
-				log.Println(err)
+				log.Printf("🧰 ❌ ERROR: Parsing YAML.")
+				return nil, err
 			}
 		}
 
@@ -53,46 +51,24 @@ func Yaml(input bytes.Buffer, flags map[string]string) []lib.K8sobject {
 
 		val, err := yaml.Marshal(doc)
 		if err != nil {
-			log.Println(err)
+			lib.CLog("error", "Unable to Marshal YAML", err)
+			return nil, err
 		}
 
 		jsonBody, err := gyaml.YAMLToJSON(val)
 		if err != nil {
-			log.Println(err)
+			lib.CLog("error", "Unable to convert yaml to json.", err)
+			return nil, err
 		}
 
-		processedDocument := processor.Processor(jsonBody, doc["kind"], flags)
+		processedDocument, err := processor.Processor(jsonBody, doc["kind"], flags)
+		if err != nil {
+			lib.CLog("error", "Creating processor", err)
+			return nil, err
+		}
 		for _, v := range processedDocument {
 			objects = append(objects, v)
 		}
 	}
-	return objects
-}
-
-func nestedQuotedStringHack(fileName string) {
-	input, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		log.Println(err)
-	}
-
-	str1 := string(input)
-	lines := strings.Split(str1, "\n")
-
-	for i, line := range lines {
-		found := strings.Contains(line, `\"`)
-		if found == true {
-			if strings.HasSuffix(lines[i], `'`) == false {
-				lines[i] = strings.Replace(lines[i], `"`, `'`, 1)
-				lines[i] = strings.TrimSuffix(lines[i], `"`)
-				lines[i] = lines[i] + `'`
-			}
-		}
-	}
-
-	output := strings.Join(lines, "\n")
-
-	err = ioutil.WriteFile(fileName, []byte(output), 0644)
-	if err != nil {
-		log.Println(err)
-	}
+	return objects, nil
 }

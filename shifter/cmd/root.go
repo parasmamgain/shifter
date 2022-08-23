@@ -14,11 +14,10 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
 	"github.com/spf13/cobra"
+	"os"
+	"shifter/lib"
+	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
@@ -44,7 +43,7 @@ Migrate your OpenShift resources to GKE/Anthos`,
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		lib.CLog("error", "Could not start the shifter cli", err)
 		os.Exit(1)
 	}
 }
@@ -60,7 +59,7 @@ func initConfig() {
 	} else {
 		home, err := homedir.Dir()
 		if err != nil {
-			fmt.Println(err)
+			lib.CLog("error", "Unable to find home directory", err)
 			os.Exit(1)
 		}
 
@@ -72,7 +71,7 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		lib.CLog("info", "Using config file: "+viper.ConfigFileUsed())
 	}
 }
 

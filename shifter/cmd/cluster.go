@@ -14,8 +14,9 @@ limitations under the license.
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"log"
+
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -44,7 +45,7 @@ Convert OpenShift resources to kubernetes native formats
 Usage: shifter cluster -e $CLUSTER_ENDPOINT -t $BEARER_TOKEN <ACTION>
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println(`
+		log.Println("\033[31m" + `
    _____ __    _ ______
   / ___// /_  (_) __/ /____  _____
   \__ \/ __ \/ / /_/ __/ _ \/ ___/
@@ -52,14 +53,14 @@ Usage: shifter cluster -e $CLUSTER_ENDPOINT -t $BEARER_TOKEN <ACTION>
 /____/_/ /_/_/_/  \__/\___/_/
 
 ----------------------------------------
-			`)
+			` + "\033[0m")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(clusterCmd)
 	clusterCmd.PersistentFlags().StringVarP(&endpoint, "cluster-endpoint", "e", "", "OpenShift cluster endpoint")
-	clusterCmd.PersistentFlags().StringVarP(&bearertoken, "token", "t", "", "Cluster authentication token")
+	clusterCmd.PersistentFlags().StringVarP(&bearertoken, "token", "t", "", "OpenShift cluster authentication token")
 	clusterCmd.MarkPersistentFlagRequired("cluster-endpoint")
 	clusterCmd.MarkPersistentFlagRequired("token")
 }

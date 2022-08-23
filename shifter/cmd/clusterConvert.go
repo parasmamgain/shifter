@@ -16,25 +16,26 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"log"
-	os "shifter/openshift"
+	"os"
+	"shifter/lib"
+	"shifter/openshift"
 )
 
 // clusterExportCmd represents the clusterExport command
 var clusterConvertCmd = &cobra.Command{
 	Use:   "convert",
-	Short: "Convert all resources or resources from a namepace from the cluster.",
-	Long: `Convert takes all the resources from a OpenShift cluster endpoint and converts them to the desired output format
-on your local disk or GCS bucket.
+	Short: "Convert all OpenShift resources from a namepace from the OpenShift cluster.",
+	Long: `Convert takes all the resources from a OpenShift cluster endpoint and converts them to the desired output format on your local disk or GCS bucket.
 
 Examples:
 	Convert all resources from a given namespace into yaml files:
-	shifter cluster -e $OPENSHIFT_ENDPOINT -t $OPENSHIFT_TOKEN convert -n $NAMESPACE -o yaml ./output/directory/path
+	shifter cluster -e $CLUSTER_ENDPOINT -t $BEARER_TOKEN convert -n $NAMESPACE -o yaml ./output/directory/path
 
 	Convert all resources from all namespaces into yaml files:
-	shifter cluster -e $OPENSHIFT_ENDPOINT -t $OPENSHIFT_TOKEN convert --all-namespaces -o yaml ./output/directory/path
+	shifter cluster -e $CLUSTER_ENDPOINT -t $BEARER_TOKEN convert --all-namespaces -o yaml ./output/directory/path
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println(`
+		log.Println("\033[31m" + `
    _____ __    _ ______
   / ___// /_  (_) __/ /____  _____
   \__ \/ __ \/ / /_/ __/ _ \/ ___/
@@ -42,23 +43,30 @@ Examples:
 /____/_/ /_/_/_/  \__/\___/_/
 
 ----------------------------------------
-`)
+` + "\033[0m")
 
 		if len(args) != 1 {
-			log.Fatal("Please specify the destination path.")
+			lib.CLog("error", "Please specify the destination path")
+			os.Exit(1)
 		}
 
 		outputPath = args[0]
 
-		log.Println("Connecting to cluster: ", endpoint)
-		log.Println("Converting cluster resources")
+		lib.CLog("info", "Connecting to cluster: "+endpoint)
+		lib.CLog("info", "Converting cluster resources.")
 		procflags := ProcFlags(pFlags)
 
-		var openshift os.Openshift
+		var openshift openshift.Openshift
 		openshift.Endpoint = endpoint
 		openshift.AuthToken = bearertoken
-		openshift.ConvertNSResources(namespace, procflags, outputPath)
-		log.Println("Conversion Complete")
+
+		// Convert OpenShift Resources
+		err := openshift.ConvertNSResources(namespace, procflags, outputPath)
+		if err != nil {
+			lib.CLog("error", "Converting cluster resources", err)
+			os.Exit(1)
+		}
+		lib.CLog("info", "Conversion Complete")
 	},
 }
 

@@ -17,6 +17,8 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"log"
+	"os"
+	"shifter/lib"
 	openshift "shifter/openshift"
 )
 
@@ -28,35 +30,46 @@ var clusterExportCmd = &cobra.Command{
 
 Examples:
 	Export all resources from a given namespace into yaml files:
-	shifter cluster -e $OPENSHIFT_ENDPOINT -t $OPENSHIFT_TOKEN export -n $NAMESPACE ./output/directory/path
+	shifter cluster -e $CLUSTER_ENDPOINT -t $BEARER_TOKEN export -n $NAMESPACE ./output/directory/path
 
 	Export all resources from all namespaces into yaml files:
-	shifter cluster -e $OPENSHIFT_ENDPOINT -t $OPENSHIFT_TOKEN export --all-namespaces ./output/directory/path
+	shifter cluster -e $CLUSTER_ENDPOINT -t $BEARER_TOKEN export --all-namespaces ./output/directory/path
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println(`
+		log.Println("\033[31m" + `
    _____ __    _ ______
   / ___// /_  (_) __/ /____  _____
   \__ \/ __ \/ / /_/ __/ _ \/ ___/
  ___/ / / / / / __/ /_/  __/ /
 /____/_/ /_/_/_/  \__/\___/_/
 
-----------------------------------------
-`)
+-----------------------------------
+` + "\033[0m")
+
 		if len(args) != 1 {
-			log.Fatal("Please specify the destination path.")
+			lib.CLog("error", "Please specify the destination path")
+			os.Exit(1)
 		}
 
 		outputPath = args[0]
 
-		log.Println("Connecting to cluster: ", endpoint)
-		log.Println("Exporting cluster resources")
+		lib.CLog("info", "Connecting to cluster: "+endpoint)
+		lib.CLog("info", "Converting cluster resources.")
+
 		var openshift openshift.Openshift
 		openshift.Endpoint = endpoint
 		openshift.AuthToken = bearertoken
-		openshift.ExportNSResources(namespace, outputPath)
-		log.Println("Export Complete")
+
+		// Export OpenShift Resources
+		err := openshift.ExportNSResources(namespace, outputPath)
+		if err != nil {
+			// Error: Exporting Resource List
+			lib.CLog("error", "Exporting cluster resources: ", err)
+			os.Exit(1)
+		}
+
+		lib.CLog("info", "Export Complete")
 	},
 }
 

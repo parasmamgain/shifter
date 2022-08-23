@@ -16,9 +16,6 @@ package input
 import (
 	"bytes"
 	gyaml "github.com/ghodss/yaml"
-	//"io/ioutil"
-	"log"
-	"os"
 	"shifter/lib"
 	"shifter/processor"
 	"sigs.k8s.io/yaml"
@@ -59,45 +56,46 @@ type OSTemplateParams struct {
 	}
 }
 
-func Template(input bytes.Buffer, flags map[string]string) (objects []lib.K8sobject, parameters []lib.OSTemplateParams) {
+func Template(input bytes.Buffer, flags map[string]string) (objects []lib.K8sobject, parameters []lib.OSTemplateParams, err error) {
 	template := OSTemplate{}
-	err := yaml.Unmarshal(input.Bytes(), &template)
+	err = yaml.Unmarshal(input.Bytes(), &template)
 	if err != nil {
-		log.Println(err)
+		lib.CLog("error", "Unable to parse template input data", err)
+		return objects, parameters, err
 	}
 	return parse(template, flags)
 }
 
-func parse(template OSTemplate, flags map[string]string) (objects []lib.K8sobject, parameters []lib.OSTemplateParams) {
+func parse(template OSTemplate, flags map[string]string) (objects []lib.K8sobject, parameters []lib.OSTemplateParams, err error) {
 	var k8s []lib.K8sobject
 	var params []lib.OSTemplateParams
 
-	//tplname := template.Metadata.Name
-
-	//iterate over the objects inside the template
 	for _, o := range template.Objects {
 		y, _ := yaml.Marshal(o)
 
 		jsonBody, err := gyaml.YAMLToJSON(y)
 		if err != nil {
-			log.Println(err)
-			os.Exit(1)
+			lib.CLog("error", "Unable to convert yaml to json", err)
+			return k8s, params, err
 		}
-		log.Print("Converting object " + o.Kind)
-		processedDocument := processor.Processor(jsonBody, o.Kind, flags)
+		// Log Opbject Conversion
+		lib.CLog("info", "Converting OpenShift object of type: "+o.Kind)
+		processedDocument, err := processor.Processor(jsonBody, o.Kind, flags)
+		if err != nil {
+			lib.CLog("error", "Creating shifter processor", err)
+			return k8s, params, err
+		}
+
 		for _, v := range processedDocument {
 			if v.Kind != nil {
 				k8s = append(k8s, v)
 			}
-
 		}
 	}
 
-	// get the parameters from the template and store in a slice array
 	for _, y := range template.Parameters {
 		params = append(params, y)
 	}
 
-	// return the converted resources and parameterized values
-	return k8s, params
+	return k8s, params, nil
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 	"log"
 	"os"
+	"shifter/lib"
 	"shifter/openshift"
 )
 
@@ -25,14 +26,9 @@ import (
 var clusterListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "Lists all resources supported by shifter in the target Openshift cluster.",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long:  "Lists all resources supported by shifter in the target Openshift cluster.",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println(`
+		log.Println("\033[31m" + `
    _____ __    _ ______
   / ___// /_  (_) __/ /____  _____
   \__ \/ __ \/ / /_/ __/ _ \/ ___/
@@ -40,17 +36,27 @@ to quickly create a Cobra application.`,
 /____/_/ /_/_/_/  \__/\___/_/
 
 ----------------------------------------
-`)
-		log.Println("Connecting to cluster: ", endpoint)
+` + "\033[0m")
+
+		lib.CLog("info", "Connecting to cluster: "+endpoint)
 
 		var openshift openshift.Openshift
 		openshift.Endpoint = endpoint
 		openshift.AuthToken = bearertoken
+
 		if namespace == "" && allnamespaces == false {
-			log.Println("Choose either all-namespaces or specify a namespace")
+			lib.CLog("error", "Please Choose either all-namespaces or specify a namespace")
 			os.Exit(1)
 		}
-		openshift.ListNSResources(csvoutput, namespace)
+
+		// List OpenShift Resources
+		err := openshift.ListNSResources(csvoutput, namespace)
+		if err != nil {
+			// Error: Building Resource List
+			lib.CLog("error", "Error building resource list: ", err)
+			os.Exit(1)
+		}
+		lib.CLog("info", "Resource List Complete")
 	},
 }
 
